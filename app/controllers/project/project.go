@@ -14,14 +14,36 @@ var db = database.DB
 func Index(c *gin.Context) {
 	var projects []models.Project
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	_, brief := c.GetQuery("brief")
 
-	paginator := pagination.Paging(&pagination.Param{
-		DB:      db,
-		Page:    page,
-		OrderBy: []string{"created_at desc"},
-	}, &projects)
+	if brief == true {
+		db.Model(&projects).Select("id, name").Order("created_at desc").Find(&projects)
 
-	render.Page(c, *paginator)
+		render.Data(c, projects)
+	} else {
+		builder := db.Set("gorm:auto_preload", true).
+			Model(&projects).Order("created_at desc").
+			Preload("ServerGroup")
+
+		paginator := pagination.Paging(&pagination.Param{
+			DB:   builder,
+			Page: page,
+		}, &projects)
+
+		render.Page(c, *paginator)
+	}
+}
+
+func Show(c *gin.Context) {
+	var project models.Project
+	projectId := c.Param("id")
+
+	if err := db.Model(&project).Where("id = ?", projectId).Find(&project).Error; err != nil {
+		render.Fail(c, err.Error())
+		return
+	}
+
+	render.Data(c, project)
 }
 
 func Store(c *gin.Context) {

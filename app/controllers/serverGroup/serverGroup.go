@@ -14,14 +14,22 @@ var db = database.DB
 func Index(c *gin.Context) {
 	var ServerGroup []models.ServerGroup
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	_, brief := c.GetQuery("brief")
 
-	paginator := pagination.Paging(&pagination.Param{
-		DB:      db,
-		Page:    page,
-		OrderBy: []string{"created_at desc"},
-	}, &ServerGroup)
+	if brief {
+		db.Model(ServerGroup).Order("created_at desc").Find(&ServerGroup)
+		render.Data(c, ServerGroup)
+	} else {
+		builder := db.Set("gorm:auto_preload", true).
+			Model(&ServerGroup).Order("created_at desc")
 
-	render.Page(c, *paginator)
+		paginator := pagination.Paging(&pagination.Param{
+			DB:   builder,
+			Page: page,
+		}, &ServerGroup)
+
+		render.Page(c, *paginator)
+	}
 }
 
 func Store(c *gin.Context) {

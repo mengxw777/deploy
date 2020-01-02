@@ -18,14 +18,14 @@ func Success(c *gin.Context, message string) {
 }
 
 func Fail(c *gin.Context, message string) {
-	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+	c.AbortWithStatusJSON(http.StatusOK, gin.H{
 		"code":    http.StatusBadRequest,
 		"message": message,
 	})
 }
 
 func Page(c *gin.Context, pagination pagination.Paginator) {
-	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+	c.AbortWithStatusJSON(http.StatusOK, gin.H{
 		"code":       http.StatusOK,
 		"message":    "success",
 		"data":       pagination.Data.Data,
@@ -34,7 +34,7 @@ func Page(c *gin.Context, pagination pagination.Paginator) {
 }
 
 func Data(c *gin.Context, data interface{}) {
-	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+	c.AbortWithStatusJSON(http.StatusOK, gin.H{
 		"code":    http.StatusOK,
 		"message": "success",
 		"data":    data,

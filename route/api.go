@@ -6,16 +6,17 @@ import (
 	projectController "deploy/app/controllers/project"
 	serverController "deploy/app/controllers/server"
 	serverGroupController "deploy/app/controllers/serverGroup"
+	WebsocketController "deploy/app/controllers/websocket"
 	"deploy/app/models"
 	_ "deploy/app/validators"
 	"deploy/database"
 	"deploy/helper/render"
+	"github.com/gin-contrib/cors"
 	"io"
 	"os"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -32,17 +33,21 @@ func InitRouter() *gin.Engine {
 	f, _ := os.Create("runtime.log")
 	gin.DefaultWriter = io.MultiWriter(f)
 
-	// 	中间件
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	router.Use(cors.Default())
+	// 	CORS
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowCredentials = false
+	config.AddAllowHeaders("authorization")
+	router.Use(cors.New(config))
 
 	// 	JWT
 	authMiddleware, _ := jwt.New(&jwt.GinJWTMiddleware{
-		Realm:         "gin blog",
+		Realm:         "deploy",
 		Key:           []byte(os.Getenv("JWT_SECRET")),
-		Timeout:       time.Hour,
-		MaxRefresh:    time.Hour,
+		Timeout:       5 * time.Hour,
+		MaxRefresh:    7 * 24 * time.Hour,
 		IdentityKey:   identityKey,
 		TokenLookup:   "header: Authorization, query: token, cookie: token",
 		TokenHeadName: "Bearer",
@@ -81,18 +86,18 @@ func InitRouter() *gin.Engine {
 		api := router.Group("api")
 		api.Use(authMiddleware.MiddlewareFunc())
 
-		// 	权限
-		router.POST("/api/auth/register", authController.Register)
-		auth := router.Group("api/auth")
+		router.POST("/api/auth/login", authMiddleware.LoginHandler)
+		auth := api.Group("/auth")
 		{
-			auth.POST("login", authMiddleware.LoginHandler)
+			auth.POST("/register", authController.Register)
 			auth.GET("/refresh_token", authMiddleware.RefreshHandler)
+			auth.GET("/info", authController.Info)
 		}
 
 		// 	服务器集群
 		serverGroup := api.Group("server_group")
 		{
-			serverGroup.GET("/", serverGroupController.Index)
+			serverGroup.GET("", serverGroupController.Index)
 			serverGroup.PUT("/:id", serverGroupController.Update)
 			serverGroup.POST("/store", serverGroupController.Store)
 			serverGroup.DELETE("/:id", serverGroupController.Destroy)
@@ -101,7 +106,8 @@ func InitRouter() *gin.Engine {
 		// 	服务器
 		server := api.Group("server")
 		{
-			server.GET("/", serverController.Index)
+			server.GET("", serverController.Index)
+			server.GET("/:id", serverController.Show)
 			server.PUT("/:id", serverController.Update)
 			server.POST("/store", serverController.Store)
 			server.DELETE("/:id", serverController.Destroy)
@@ -110,7 +116,8 @@ func InitRouter() *gin.Engine {
 		// 	项目
 		project := api.Group("project")
 		{
-			project.GET("/", projectController.Index)
+			project.GET("", projectController.Index)
+			project.GET("/:id", projectController.Show)
 			project.PUT("/:id", projectController.Update)
 			project.POST("/store", projectController.Store)
 			project.DELETE("/:id", projectController.Destroy)
@@ -119,11 +126,20 @@ func InitRouter() *gin.Engine {
 		// 	部署
 		deploy := api.Group("deploy")
 		{
-			deploy.GET("/", deployController.Index)
+			deploy.GET("", deployController.Index)
+			deploy.GET("/:id", deployController.Show)
 			deploy.POST("/store", deployController.Store)
 			deploy.DELETE("/:id", deployController.Destroy)
 			deploy.POST("/build/:id", deployController.Build)
 			deploy.POST("/deploy/:id", deployController.Deploy)
+
+			deploy.POST("/test", deployController.Test)
+
+		}
+
+		websocket := api.Group("ws")
+		{
+			websocket.GET("", WebsocketController.Websocket)
 		}
 	}
 

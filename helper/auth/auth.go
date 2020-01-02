@@ -13,7 +13,9 @@ func GetUserInfo(c *gin.Context) models.User {
 	var user models.User
 	claims := jwt.ExtractClaims(c)
 	id := claims["id"]
-	db.Where("id = ?", id).Find(&user)
+	if id != nil {
+		db.Where("id = ?", id).Find(&user)
+	}
 	return user
 }
 

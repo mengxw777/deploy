@@ -5,10 +5,9 @@ import (
 )
 
 type Param struct {
-	DB      *gorm.DB
-	Page    int
-	Limit   int
-	OrderBy []string
+	DB    *gorm.DB
+	Page  int
+	Limit int
 }
 
 type Paginator struct {
@@ -34,12 +33,6 @@ func Paging(p *Param, result interface{}) *Paginator {
 
 	if p.Limit == 0 {
 		p.Limit = 15
-	}
-
-	if len(p.OrderBy) > 0 {
-		for _, o := range p.OrderBy {
-			db = db.Order(o)
-		}
 	}
 
 	done := make(chan bool, 1)

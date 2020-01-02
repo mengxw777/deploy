@@ -3,6 +3,7 @@ package controllers
 import (
 	"deploy/app/models"
 	"deploy/database"
+	"deploy/helper/auth"
 	"deploy/helper/render"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -18,7 +19,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if !db.Select("account = ?", user.Account).Find(&user).RecordNotFound() {
+	if db.Select("account = ?", user.Account).Find(&user).RecordNotFound() {
 		render.Fail(c, "账号已存在")
 		return
 	}
@@ -37,4 +38,13 @@ func Register(c *gin.Context) {
 	}
 
 	render.Success(c, "注册成功")
+}
+
+func Info(c *gin.Context) {
+	info := make(map[string]interface{})
+	user := auth.GetUserInfo(c)
+	info["id"] = user.Id
+	info["account"] = user.Account
+	info["created_at"] = user.CreatedAt.String()
+	render.Data(c, info)
 }
