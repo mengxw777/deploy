@@ -6,7 +6,8 @@ import (
 	projectController "deploy/app/controllers/project"
 	serverController "deploy/app/controllers/server"
 	serverGroupController "deploy/app/controllers/serverGroup"
-	WebsocketController "deploy/app/controllers/websocket"
+	userController "deploy/app/controllers/user"
+	websocketController "deploy/app/controllers/websocket"
 	"deploy/app/models"
 	_ "deploy/app/validators"
 	"deploy/database"
@@ -132,14 +133,19 @@ func InitRouter() *gin.Engine {
 			deploy.DELETE("/:id", deployController.Destroy)
 			deploy.POST("/build/:id", deployController.Build)
 			deploy.POST("/deploy/:id", deployController.Deploy)
+		}
 
-			deploy.POST("/test", deployController.Test)
-
+		//	用户
+		user := api.Group("user")
+		{
+			user.GET("", userController.Index)
+			user.PUT("/:id", userController.Update)
+			user.DELETE("/:id", userController.Destroy)
 		}
 
 		websocket := api.Group("ws")
 		{
-			websocket.GET("", WebsocketController.Websocket)
+			websocket.GET("", websocketController.Websocket)
 		}
 	}
 

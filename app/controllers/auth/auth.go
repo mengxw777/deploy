@@ -13,13 +13,14 @@ var db = database.DB
 
 func Register(c *gin.Context) {
 	var user models.User
+	var result models.User
 
 	if err := c.ShouldBind(&user); err != nil {
 		render.Fail(c, render.NewValidatorError(err))
 		return
 	}
 
-	if db.Select("account = ?", user.Account).Find(&user).RecordNotFound() {
+	if !db.First(&result, "account = ?", user.Account).RecordNotFound() {
 		render.Fail(c, "账号已存在")
 		return
 	}
